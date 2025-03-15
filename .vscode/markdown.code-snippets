@@ -1,0 +1,20 @@
+{
+    "Markdown Doc Template": {
+      "prefix": "mdoc",
+      "body": [
+        "---",
+        "layout: doc",
+        "title: ${1:标题}",
+        "description: ${2:描述}",
+        "date: ${3:$CURRENT_YEAR-$CURRENT_MONTH-$CURRENT_DATE}",
+        "head:",
+        "  - - meta",
+        "    - name: keywords",
+        "      content: ${4:关键词}",
+        "---",
+        "",
+        "$0"
+      ],
+      "description": "创建一个新的 Markdown 文档模板"
+    }
+  }
