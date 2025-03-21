@@ -20,35 +20,83 @@ function formatDate(dateString) {
         day: "numeric",
     });
 }
+/** 默认排除的目录 */
+const DEFAULT_EXCLUDE_DIRS = [
+    '.vitepress',
+    'components',
+    'utils',
+    'types',
+    'public'
+];
 /**
- * 获取目录下的 Markdown 文件并提取 frontmatter
- * @param dirPath - 目标目录路径
- * @returns 包含 frontmatter 信息的文件列表
+ * 获取目录下的推荐文章列表
+ *
+ * @description
+ * 递归扫描指定目录下的所有 Markdown 文件，提取其 frontmatter 信息。
+ * 仅返回 type 为 "recommendation" 且包含必要字段的文章。
+ * 最终结果按日期降序排序。
+ *
+ * @param dirPath - 要扫描的目录路径
+ * @param excludeDirs - 要排除的目录列表，默认为 DEFAULT_EXCLUDE_DIRS
+ * @returns 包含文章元数据的数组，按日期降序排序
+ *
+ * @example
+ * ```typescript
+ * // 使用默认排除目录
+ * const articles = getRecommendationFilesWithFrontmatter('./docs');
+ *
+ * // 自定义排除目录
+ * const articles = getRecommendationFilesWithFrontmatter('./docs', ['private', 'drafts']);
+ * ```
  */
-function getRecommendationFilesWithFrontmatter(dirPath) {
-    const files = fs.readdirSync(dirPath, { withFileTypes: true });
+function getRecommendationFilesWithFrontmatter(dirPath, excludeDirs = DEFAULT_EXCLUDE_DIRS) {
+    // 递归读取目录下的所有文件
+    const files = fs.readdirSync(dirPath, {
+        withFileTypes: true,
+        recursive: true
+    });
     const recommendationFiles = [];
+    // 遍历所有文件
     files.forEach((file) => {
-        if (file.isFile() && file.name.endsWith(".md")) {
-            const filePath = path.join(dirPath, file.name);
-            const fileContent = fs.readFileSync(filePath, "utf-8");
+        // 检查文件路径是否在排除目录中
+        const relativePath = path.relative(dirPath, file.path || '');
+        const isInExcludedDir = excludeDirs.some(dir => relativePath.split(path.sep).includes(dir));
+        if (isInExcludedDir) {
+            return;
+        }
+        // 只处理 Markdown 文件
+        if (!file.isFile() || !file.name.endsWith('.md')) {
+            return;
+        }
+        try {
+            const filePath = path.join(file.path || dirPath, file.name);
+            const fileContent = fs.readFileSync(filePath, 'utf-8');
             const { data } = matter(fileContent);
-            if (data.type === "recommendation" &&
-                data.title &&
-                data.date &&
-                data.description) {
+            // 验证必要的 frontmatter 字段
+            if (data.type === 'recommendation' &&
+                typeof data.title === 'string' &&
+                data.title.trim() !== '' &&
+                (data.date instanceof Date || typeof data.date === 'string') &&
+                typeof data.description === 'string' &&
+                data.description.trim() !== '') {
+                const rawDate = data.date instanceof Date
+                    ? data.date.toISOString().split('T')[0]
+                    : data.date;
                 recommendationFiles.push({
-                    title: data.title,
-                    date: formatDate(data.date),
-                    link: `./${file.name}`,
-                    description: data.description,
+                    title: data.title.trim(),
+                    date: formatDate(rawDate),
+                    rawDate,
+                    link: `./${path.relative(dirPath, filePath)}`,
+                    description: data.description.trim()
                 });
             }
         }
+        catch (error) {
+            console.warn(`处理文件 ${file.name} 时出错:`, error);
+        }
     });
-    // 根据日期排序
-    recommendationFiles.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    return recommendationFiles;
+    // 按日期降序排序，使用原始日期进行排序
+    return recommendationFiles.sort((a, b) => new Date(b.rawDate).getTime() - new Date(a.rawDate).getTime());
 }
 /**
  * 生成 index.md 的内容

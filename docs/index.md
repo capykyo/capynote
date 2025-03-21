@@ -40,4 +40,5 @@ features:
 import Card from './components/Card.vue';
 </script>
 
+<Card title="Google AI Agent 白皮书解读" description="Google 2024年 AI Agent 白皮书的中文翻译与解读，探讨了 Agent 的定义、架构和应用" link="./笔记/AI/Google-AI-Agent-Whitepaper" date="2025年3月21日" />
 <Card title="capynote 文本编辑规则 - AI 使用" description="capynote 是一个基于 vitepress 的文档管理工具，可以方便的创建和管理文档。" link="./content-rules" date="2025年3月6日" />

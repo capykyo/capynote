@@ -24,49 +24,115 @@ function formatDate(dateString: string): string {
 }
 
 /**
- * 获取目录下的 Markdown 文件并提取 frontmatter
- * @param dirPath - 目标目录路径
- * @returns 包含 frontmatter 信息的文件列表
+ * 推荐文章的元数据接口
+ */
+interface RecommendationMeta {
+  /** 文章标题 */
+  title: string;
+  /** 发布日期（显示用，格式化后的） */
+  date: string;
+  /** 原始日期（用于排序） */
+  rawDate: string;
+  /** 文章链接 */
+  link: string;
+  /** 文章描述 */
+  description: string;
+}
+
+/** 默认排除的目录 */
+const DEFAULT_EXCLUDE_DIRS = [
+  '.vitepress',
+  'components',
+  'utils',
+  'types',
+  'public'
+];
+
+/**
+ * 获取目录下的推荐文章列表
+ * 
+ * @description
+ * 递归扫描指定目录下的所有 Markdown 文件，提取其 frontmatter 信息。
+ * 仅返回 type 为 "recommendation" 且包含必要字段的文章。
+ * 最终结果按日期降序排序。
+ * 
+ * @param dirPath - 要扫描的目录路径
+ * @param excludeDirs - 要排除的目录列表，默认为 DEFAULT_EXCLUDE_DIRS
+ * @returns 包含文章元数据的数组，按日期降序排序
+ * 
+ * @example
+ * ```typescript
+ * // 使用默认排除目录
+ * const articles = getRecommendationFilesWithFrontmatter('./docs');
+ * 
+ * // 自定义排除目录
+ * const articles = getRecommendationFilesWithFrontmatter('./docs', ['private', 'drafts']);
+ * ```
  */
 function getRecommendationFilesWithFrontmatter(
-  dirPath: string
-): { title: string; date: string; link: string; description: string }[] {
-  const files = fs.readdirSync(dirPath, { withFileTypes: true });
-  const recommendationFiles: {
-    title: string;
-    date: string;
-    link: string;
-    description: string;
-  }[] = [];
+  dirPath: string, 
+  excludeDirs: string[] = DEFAULT_EXCLUDE_DIRS
+): RecommendationMeta[] {
+  // 递归读取目录下的所有文件
+  const files = fs.readdirSync(dirPath, { 
+    withFileTypes: true, 
+    recursive: true 
+  });
+  
+  const recommendationFiles: RecommendationMeta[] = [];
 
+  // 遍历所有文件
   files.forEach((file) => {
-    if (file.isFile() && file.name.endsWith(".md")) {
-      const filePath = path.join(dirPath, file.name);
-      const fileContent = fs.readFileSync(filePath, "utf-8");
+    // 检查文件路径是否在排除目录中
+    const relativePath = path.relative(dirPath, file.path || '');
+    const isInExcludedDir = excludeDirs.some(dir => 
+      relativePath.split(path.sep).includes(dir)
+    );
+
+    if (isInExcludedDir) {
+      return;
+    }
+
+    // 只处理 Markdown 文件
+    if (!file.isFile() || !file.name.endsWith('.md')) {
+      return;
+    }
+
+    try {
+      const filePath = path.join(file.path || dirPath, file.name);
+      const fileContent = fs.readFileSync(filePath, 'utf-8');
       const { data } = matter(fileContent);
 
+      // 验证必要的 frontmatter 字段
       if (
-        data.type === "recommendation" &&
-        data.title &&
-        data.date &&
-        data.description
+        data.type === 'recommendation' &&
+        typeof data.title === 'string' &&
+        data.title.trim() !== '' &&
+        (data.date instanceof Date || typeof data.date === 'string') &&
+        typeof data.description === 'string' &&
+        data.description.trim() !== ''
       ) {
+        const rawDate = data.date instanceof Date 
+          ? data.date.toISOString().split('T')[0] 
+          : data.date;
+          
         recommendationFiles.push({
-          title: data.title,
-          date: formatDate(data.date),
-          link: `./${file.name}`,
-          description: data.description,
+          title: data.title.trim(),
+          date: formatDate(rawDate),
+          rawDate,
+          link: `./${path.relative(dirPath, filePath)}`,
+          description: data.description.trim()
         });
       }
+    } catch (error) {
+      console.warn(`处理文件 ${file.name} 时出错:`, error);
     }
   });
 
-  // 根据日期排序
-  recommendationFiles.sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  // 按日期降序排序，使用原始日期进行排序
+  return recommendationFiles.sort((a, b) => 
+    new Date(b.rawDate).getTime() - new Date(a.rawDate).getTime()
   );
-
-  return recommendationFiles;
 }
 
 /**
@@ -75,12 +141,7 @@ function getRecommendationFilesWithFrontmatter(
  * @returns 生成的 Markdown 内容
  */
 function generateIndexContent(
-  recommendationFiles: {
-    title: string;
-    date: string;
-    link: string;
-    description: string;
-  }[]
+  recommendationFiles: RecommendationMeta[]
 ): string {
   let content = "<script setup>\n";
   content += "import Card from './components/Card.vue';\n";
@@ -99,6 +160,7 @@ function generateIndexContent(
  */
 function writeIndexFile(dirPath: string): void {
   const recommendationFiles = getRecommendationFilesWithFrontmatter(dirPath);
+  
   if (recommendationFiles.length > 0) {
     const indexContent = generateIndexContent(recommendationFiles);
 
