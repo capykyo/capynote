@@ -79,6 +79,7 @@ Agent 可以理解为是一个扩展了大模型出厂能力的应用程序。�
 
 7. [总结](#7-总结)
    - [参考资料](#参考资料)
+
 <div id="cnblogs_post_body" class="blogpost-body blogpost-body-html">
 
 <h2 id="1-引言">1 引言</h2>
@@ -637,14 +638,3 @@ The address of the Georgia Bulldogs stadium is 100 Sanford Dr, Athens, GA 30602,
 
 [英文原版：https://pan.quark.cn/s/01aa92cc3147#/list/share](https://pan.quark.cn/s/01aa92cc3147#/list/share)
 </div>
-
-<style module>
-h1, h2, h3 {
-    color: #007acc;
-    text-shadow: 0 0 5px rgba(0, 122, 204, 0.5);
-}
-.dark h1, h2, h3 {
-    color:rgb(106, 186, 239);
-    text-shadow: 0 0 5px rgba(26, 59, 81, 0.5);
-}
-</style>
