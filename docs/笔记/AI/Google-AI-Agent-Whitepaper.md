@@ -638,7 +638,7 @@ The address of the Georgia Bulldogs stadium is 100 Sanford Dr, Athens, GA 30602,
 [英文原版：https://pan.quark.cn/s/01aa92cc3147#/list/share](https://pan.quark.cn/s/01aa92cc3147#/list/share)
 </div>
 
-<style scoped>
+<style module>
 h1, h2, h3 {
     color: #007acc;
     text-shadow: 0 0 5px rgba(0, 122, 204, 0.5);
